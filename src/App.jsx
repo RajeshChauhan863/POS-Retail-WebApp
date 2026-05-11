@@ -4,6 +4,7 @@ import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import Sidebar from './components/Sidebar.jsx'
 import Products from './pages/Products.jsx'
+import Customers from './pages/Customers.jsx'
 import './App.css'
 
 function App() {
@@ -26,6 +27,8 @@ function App() {
 
         {activeNav === 'products' ? (
           <Products />
+        ) : activeNav === 'customers' ? (
+          <Customers />
         ) : (
           <>
             <section id="center">

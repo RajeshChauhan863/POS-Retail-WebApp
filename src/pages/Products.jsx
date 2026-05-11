@@ -4,36 +4,38 @@ const initialProducts = [
   {
     id: 'p1',
     name: 'Premium Coffee Beans 1kg',
-    description: 'CF-1001',
+    sku: 'CF-1001',
     category: 'Grocery',
-    unitPrice: 499,
+    price: 499,
     stock: 58,
-    
+    status: 'Active',
   },
   {
     id: 'p2',
     name: 'Whole Wheat Bread Loaf',
-    description: 'BR-2030',
+    sku: 'BR-2030',
     category: 'Bakery',
     price: 80,
     stock: 14,
+    status: 'Active',
   },
   {
     id: 'p3',
     name: 'Organic Almonds 500g',
-    description: 'AL-3090',
+    sku: 'AL-3090',
     category: 'Dry Fruits',
     price: 699,
     stock: 9,
-    
+    status: 'Active',
   },
   {
     id: 'p4',
     name: 'Soft Drink 750ml',
-    description: 'SD-1040',
+    sku: 'SD-1040',
     category: 'Beverages',
     price: 55,
     stock: 0,
+    status: 'Inactive',
   },
 ]
 
@@ -87,6 +89,8 @@ export default function Products() {
     stock: '',
     status: 'Active',
   })
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
 
   const categories = useMemo(() => {
     const set = new Set(products.map((p) => p.category))
@@ -118,6 +122,12 @@ export default function Products() {
   }, [products])
 
   function openAdd() {
+
+
+
+
+
+
     setDraft({
       name: '',
       sku: '',
@@ -129,27 +139,61 @@ export default function Products() {
     setIsAddOpen(true)
   }
 
-  function saveDraft() {
+  async function saveDraft() {
     const name = draft.name.trim()
-    const description = draft.description.trim()
-    const unitPrice = Number(draft.price)
+    const sku = draft.sku.trim()
+    const price = Number(draft.price)
     const stock = Number(draft.stock)
 
-    if (!name || !description || Number.isNaN(unitPrice) || Number.isNaN(stock)) return
+    if (!name || !sku || Number.isNaN(price) || Number.isNaN(stock)) {
+      setSaveError('Please fill in all required fields with valid values.')
+      return
+    }
 
-    setProducts((prev) => [
-      {
-        id: `${Date.now()}`,
-        name,
-        description,
-        category: draft.category,
-        unitPrice,
-        stock,
-        
-      },
-      ...prev,
-    ])
-    setIsAddOpen(false)
+    const newProduct = {
+      name,
+      sku,
+      category: draft.category,
+      price,
+      stock,
+      status: draft.status,
+    }
+
+    setIsSaving(true)
+    setSaveError('')
+
+    try {
+      const response = await fetch('https://localhost:7240/api/product', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newProduct),
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(errorText || 'Failed to save product')
+      }
+
+      const createdProduct = await response.json()
+      setProducts((prev) => [
+        {
+          id: createdProduct.id ?? `${Date.now()}`,
+          ...newProduct,
+        },
+        ...prev,
+      ])
+      setIsAddOpen(false)
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to save product. Please try again.',
+      )
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   function toggleStatus(id) {
@@ -239,10 +283,11 @@ export default function Products() {
             <thead>
               <tr>
                 <th>Product</th>
-                <th>Description</th>
+                <th>SKU</th>
                 <th>Category</th>
-                <th className="numeric">Unit Price</th>
+                <th className="numeric">Price</th>
                 <th className="numeric">Stock</th>
+                <th>Status</th>
                 <th className="numeric">Action</th>
               </tr>
             </thead>
@@ -262,7 +307,15 @@ export default function Products() {
                       <span className="badge badge-pill">{p.stock}</span>
                     )}
                   </td>
-                  
+                  <td>
+                    <span
+                      className={`badge ${
+                        p.status === 'Active' ? 'badge-success' : 'badge-muted'
+                      }`}
+                    >
+                      {p.status}
+                    </span>
+                  </td>
                   <td className="numeric">
                     <button
                       type="button"
@@ -298,11 +351,11 @@ export default function Products() {
             />
           </label>
           <label className="field">
-            <span className="field-label">Descritpion</span>
+            <span className="field-label">Description</span>
             <input
               className="text-input"
               value={draft.sku}
-              onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
+              onChange={(e) => setDraft((d) => ({ ...d, sku: e.target.value }))}
               placeholder="e.g. CF-1001"
             />
           </label>
@@ -323,7 +376,20 @@ export default function Products() {
             </select>
           </label>
           <label className="field">
-            <span className="field-label">Unit Price (INR)</span>
+            <span className="field-label">Status</span>
+            <select
+              className="select-input"
+              value={draft.status}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, status: e.target.value }))
+              }
+            >
+              <option>Active</option>
+              <option>Inactive</option>
+            </select>
+          </label>
+          <label className="field">
+            <span className="field-label">Price (INR)</span>
             <input
               className="text-input"
               inputMode="numeric"
@@ -348,12 +414,19 @@ export default function Products() {
           </label>
         </div>
 
+        {saveError && <div className="form-error">{saveError}</div>}
+
         <div className="dialog-footer">
           <button type="button" className="btn-outline" onClick={() => setIsAddOpen(false)}>
             Cancel
           </button>
-          <button type="button" className="btn-primary" onClick={saveDraft}>
-            Save
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={saveDraft}
+            disabled={isSaving}
+          >
+            {isSaving ? 'Saving…' : 'Save'}
           </button>
         </div>
       </Dialog>
