@@ -3,9 +3,13 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import Sidebar from './components/Sidebar.jsx'
+import POS from './pages/POS.jsx'
 import Products from './pages/Products.jsx'
+import Inventory from './pages/Inventory.jsx'
 import Customers from './pages/Customers.jsx'
+import Reports from './pages/Reports.jsx'
 import './App.css'
+import './css/reports.css'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -25,10 +29,16 @@ function App() {
           </div>
         </header>
 
-        {activeNav === 'products' ? (
+        {activeNav === 'pos' ? (
+          <POS />
+        ) : activeNav === 'products' ? (
           <Products />
         ) : activeNav === 'customers' ? (
           <Customers />
+        ) : activeNav === 'inventory' ? (
+          <Inventory />
+        ) : activeNav === 'reports' ? (
+          <Reports />
         ) : (
           <>
             <section id="center">
